@@ -1,0 +1,6 @@
+this is my first web based project here in alx
+written in python for now, classes and objects will be wholly used here
+the platform will allow for user creation, updating,deleting, storing etc
+the front end will be done using cmd module of the python language
+i will continue updating this as i progress
+thanks
