@@ -1,81 +1,90 @@
 #!/usr/bin/python3
-"""
-importing all the classes and subclasses together with json
-because we are going to need them
-"""
-import json
-from models.base_model import BaseModel
-from models.user import User
-from models.state import State
-from models.city import City
-from models.place import Place
-from models.amenity import Amenity
-from models.review import Review
+"""we are importing models since we already
+ made it a package using our __init__.py
+    file, then uuid4 creates a very unique
+     id that is not time dependent
+    Defines our BaseModel class that is
+     common to everyone."""
+import models
+from uuid import uuid4
+from datetime import datetime
 
 
-class FileStorage:
-    """
-    Represent an abstracted storage engine.
-    Attributes:
-        __file_path (str): The name of the file to save objects to.
-        __objects (dict): A dictionary of instantiated objects.
-    """
-    __file_path = "file.json"
-    __objects = {}
+class BaseModel:
+    """Represents the BaseModel of the HBnB project.
+     classes can inherit from this"""
 
-    def all(self):
+    def __init__(self, *args, **kwargs):
+        """Initialize a new BaseModel.
+
+        Args:
+            *args (any): Probably Unused.
+            **kwargs (dict): Key/value pairs of
+             attributes that will enter this.
+            id :this is gotten through uuid4
         """
-        Return the dictionary __objects. if it is not initialised,
-        the objects will be empty
-        """
-        return FileStorage.__objects
-
-    def new(self, obj):
-        """where obj is the parameters of the class
-        the kdobj_classname is the name of the class,
-        eg lets say class Dog, and
-        puppy=Dog(self), the kdobj_classname will be Dog"""
-        kdobj_classname = obj.__class__.__name__
-        """
-        in the the __objects dictionary, a new key with
-        the name of the class.the_id will be equal to
-        all the parameters involved using our example in
-        the last comment, we can save all our params as
-        __objects[Dog.unique_obj_id]=all_parameters"""
-        FileStorage.__objects["{}.{}".format(kdobj_classname, obj.id)] = obj
+        tform = "%Y-%m-%dT%H:%M:%S.%f"
+        self.id = str(uuid4())
+        self.created_at = datetime.today()
+        self.updated_at = datetime.today()
+        """if the new object argument/parameters
+         is not empty
+         explanation of the below code
+         kwargs.items contains all parameters
+             taken by a basemodel object,
+             k represents the key, v is the value:
+        if there is anything like created_at
+                     or updated_at
+                    as a key in the dictionary of parameters
+                     meaning the new object 
+                    is already not empty, then the said key
+                     will be equal to
+                    the datetime.today() value but will be in
+                     the tform format which is
+                    year-month-day hour:minute:seconds format
+                     and the value and 
+                    corresponding key will be saved back to the
+                     object dictionary in that format
+        if theres nothing like created_at or
+                     updated_at as a key but other keys exists,
+                    let the values of that other key remain the
+                     same with the key and continue
+                    as keyword parameters
+         """
+        if len(kwargs) != 0:
+            
+            for k, v in kwargs.items():
+                if k == "created_at" or k == "updated_at":
+                    self.__dict__[k] = datetime.strptime(v, tform)
+                else:
+                    self.__dict__[k] = v
+        else:
+            models.storage.new(self)
+            """if what we want to save has empty parameters
+             ie contains no creation
+            or update date then already from our __init__.py,
+             we explained storage as an instance of 
+            class FileStorage, so we will use the new() method"""
 
     def save(self):
-        """with the dictionary and unique id created from new,
-            we will be saving it into file using the json format
-            since the dictionary name is __objects and there is a key named:
-            classname.unique_id containing all the parameters such as
-            created_at,
-            updated_at etc """
-        general_dict = FileStorage.__objects
-        """for every key in general_dict,  """
-        """kdobjdict an empty dictionary to store the result
-        then we will Iterate over the keys of the general_dict
-        the new but empty dictionary kdobjdict; its keys will contain a
-        key value obj from the general_dict
-        Convert the value corresponding to the current key to a dictionary
-        and assign it to kdobjdict with the key obj
-        in essence, kdobjdict[obj] value is a dictionary string containin
-        things in k:v format """
-        kdobjdict = {}
-        for obj in general_dict.keys():
-            kdobjdict[obj] = general_dict[obj].to_dict()
-            with open(FileStorage.__file_path, "w") as f:
-                json.dump(kdobjdict, f)
+        """Update updated_at with the current datetime."""
+        self.updated_at = datetime.today()
+        models.storage.save()
 
-    def reload(self):
-        """Deserialize the JSON file __file_path to __objects,
-        if it exists."""
-        try:
-            with open(FileStorage.__file_path) as f:
-                kdobjdict = json.load(f)
-                for o in kdobjdict.values():
-                    cls_name = o["__class__"]
-                    del o["__class__"]
-                    self.new(eval(cls_name)(**o))
-        except FileNotFoundError:
-            return
+    def to_dict(self):
+        """Return the dictionary of the BaseModel instance.
+
+        Includes the key/value pair __class__ representing
+        the class name of the object.
+        """
+        kddict = self.__dict__.copy()
+        kddict["created_at"] = self.created_at.isoformat()
+        kddict["updated_at"] = self.updated_at.isoformat()
+        kddict["__class__"] = self.__class__.__name__
+        return kddict
+
+    def __str__(self):
+        """Return the print/str representation
+         of the BaseModel instance."""
+        kdclass_name = self.__class__.__name__
+        return "[{}] ({}) {}".format(kdclass_name, self.id, self.__dict__)
